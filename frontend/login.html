@@ -1,0 +1,122 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F2F0EA">
+  <title>Sign In — NovaPress</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./js/lucide.min.js"></script>
+</head>
+<body class="auth-page">
+  <div class="auth-layout">
+    <div class="auth-brand">
+      <a href="./index.html" class="brand" aria-label="NovaPress home">
+        <img src="./logo.svg" alt="NovaPress" class="brand-logo">
+      </a>
+      <p class="auth-tagline">Your intelligent news feed, personalized for you.</p>
+    </div>
+
+    <div class="auth-card">
+      <h1 class="auth-title">Welcome back</h1>
+      <p class="auth-subtitle">Sign in to your NovaPress account</p>
+
+      <div id="authNotice" class="auth-notice" hidden></div>
+
+      <form id="loginForm" class="auth-form" novalidate>
+        <div class="field">
+          <label for="email"><span>EMAIL</span></label>
+          <input id="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+          <span class="field-error" id="emailError"></span>
+        </div>
+
+        <div class="field">
+          <label for="password"><span>PASSWORD</span></label>
+          <div class="input-with-toggle">
+            <input id="password" type="password" autocomplete="current-password" placeholder="Your password" required minlength="6">
+            <button type="button" class="toggle-pw" id="togglePw" aria-label="Show password"><i data-lucide="eye"></i></button>
+          </div>
+          <span class="field-error" id="passwordError"></span>
+        </div>
+
+        <div class="auth-row">
+          <a href="./forgot-password.html" class="auth-link">Forgot password?</a>
+        </div>
+
+        <button type="submit" id="submitBtn" class="primary-button w-full">Sign in <span>→</span></button>
+      </form>
+
+      <p class="auth-switch">Don't have an account? <a href="./register.html" class="auth-link">Create one free</a></p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+  <script src="./config.js"></script>
+  <script type="module">
+    import { redirectIfAuthenticated, signIn } from "./js/auth.js";
+    import { toast } from "./js/utils.js";
+
+    window.lucide?.createIcons();
+    redirectIfAuthenticated("./dashboard.html");
+
+    const form = document.getElementById("loginForm");
+    const submitBtn = document.getElementById("submitBtn");
+    const notice = document.getElementById("authNotice");
+    const togglePw = document.getElementById("togglePw");
+    const pwInput = document.getElementById("password");
+
+    togglePw.addEventListener("click", () => {
+      const isHidden = pwInput.type === "password";
+      pwInput.type = isHidden ? "text" : "password";
+      togglePw.innerHTML = isHidden
+        ? `<i data-lucide="eye-off" style="width:16px;height:16px"></i>`
+        : `<i data-lucide="eye" style="width:16px;height:16px"></i>`;
+      window.lucide?.createIcons();
+    });
+
+    // Show message from query param (e.g. after email verify)
+    const msg = new URLSearchParams(location.search).get("message");
+    if (msg) { notice.textContent = msg; notice.hidden = false; notice.className = "auth-notice auth-notice--success"; }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      clearErrors();
+      const email = document.getElementById("email").value.trim();
+      const password = pwInput.value;
+
+      if (!email) return setError("emailError", "Email is required");
+      if (!password) return setError("passwordError", "Password is required");
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Signing in…";
+      try {
+        await signIn(email, password);
+        location.replace("./dashboard.html");
+      } catch (err) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Sign in <span>→</span>';
+        const msg = (err.message || "Sign in failed").toLowerCase();
+        // Unconfirmed email — redirect to OTP verification
+        if (msg.includes("not confirmed") || msg.includes("email not confirmed") || msg.includes("confirmation")) {
+          sessionStorage.setItem("signal_pending_otp", email);
+          location.replace(`./register.html?pending_otp=${encodeURIComponent(email)}`);
+          return;
+        }
+        if (msg.includes("email") || msg.includes("user")) setError("emailError", err.message);
+        else if (msg.includes("password") || msg.includes("invalid")) setError("passwordError", "Incorrect password");
+        else { notice.textContent = err.message || "Sign in failed"; notice.hidden = false; notice.className = "auth-notice auth-notice--error"; }
+      }
+    });
+
+    function setError(id, msg) { document.getElementById(id).textContent = msg; }
+    function clearErrors() {
+      ["emailError", "passwordError"].forEach(id => document.getElementById(id).textContent = "");
+      notice.hidden = true;
+    }
+  </script>
+</body>
+</html>
+
+

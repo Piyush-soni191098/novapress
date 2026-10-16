@@ -1,0 +1,269 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F2F0EA">
+  <meta name="description" content="Personalized news intelligence platform">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./js/lucide.min.js"></script>
+  <title>Dashboard — NovaPress</title>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./dashboard.html" aria-label="NovaPress home">
+      <img src="./logo.svg" alt="NovaPress" class="brand-logo">
+    </a>
+    <nav class="top-nav" aria-label="Main navigation">
+      <a href="./dashboard.html" class="nav-link nav-link--active">Feed</a>
+      <a href="./discover.html" class="nav-link">Discover</a>
+      <a href="./bookmarks.html" class="nav-link">Bookmarks</a>
+      <a href="./insights.html" class="nav-link">Insights</a>
+    </nav>
+    <div class="topbar-right">
+      <button id="searchToggle" class="icon-button" title="Search" aria-label="Toggle search"><i data-lucide="search"></i></button>
+      <a href="./settings.html" class="icon-button" title="Settings" aria-label="Settings"><i data-lucide="settings"></i></a>
+      <button id="signOutBtn" class="secondary-button topbar-signout">Sign out</button>
+    </div>
+  </header>
+
+  <!-- Mobile nav -->
+  <nav class="mobile-nav" aria-label="Mobile navigation">
+    <a href="./dashboard.html" class="mobile-nav-item mobile-nav-item--active" aria-label="Feed"><i data-lucide="newspaper"></i><span>Feed</span></a>
+    <a href="./discover.html" class="mobile-nav-item" aria-label="Discover"><i data-lucide="compass"></i><span>Discover</span></a>
+    <a href="./bookmarks.html" class="mobile-nav-item" aria-label="Bookmarks"><i data-lucide="bookmark"></i><span>Saved</span></a>
+    <a href="./insights.html" class="mobile-nav-item" aria-label="Insights"><i data-lucide="bar-chart-2"></i><span>Insights</span></a>
+    <a href="./settings.html" class="mobile-nav-item" aria-label="Settings"><i data-lucide="settings"></i><span>Settings</span></a>
+  </nav>
+
+  <!-- Search bar (collapsible) -->
+  <div class="search-bar-wrap" id="searchBarWrap" hidden>
+    <div class="shell">
+      <form class="search-bar" id="searchBarForm">
+        <input type="search" id="searchBarInput" placeholder="Search articles, topics…" maxlength="200" class="search-bar-input">
+        <button type="submit" class="primary-button">Search</button>
+        <button type="button" id="searchClose" class="secondary-button">✕</button>
+      </form>
+    </div>
+  </div>
+
+  <main class="shell dashboard-main">
+    <div class="dashboard-layout">
+      <!-- Sidebar -->
+      <aside class="dashboard-sidebar">
+        <div class="sidebar-section">
+          <p class="eyebrow">FOLLOWING</p>
+          <div id="sidebarTopics" class="sidebar-topics">
+            <div class="spinner" aria-label="Loading topics"></div>
+          </div>
+          <a href="./discover.html" class="sidebar-link">+ Discover more topics</a>
+        </div>
+        <div class="sidebar-section">
+          <p class="eyebrow">SHORTCUTS</p>
+          <a href="./bookmarks.html" class="sidebar-link"><i data-lucide="bookmark" style="width:15px;height:15px;margin-right:6px;vertical-align:middle"></i>Saved articles</a>
+          <a href="./insights.html" class="sidebar-link"><i data-lucide="bar-chart-2" style="width:15px;height:15px;margin-right:6px;vertical-align:middle"></i>My insights</a>
+          <a href="./settings.html" class="sidebar-link"><i data-lucide="settings" style="width:15px;height:15px;margin-right:6px;vertical-align:middle"></i>Settings</a>
+        </div>
+      </aside>
+
+      <!-- Main feed -->
+      <div class="dashboard-feed">
+        <div class="feed-heading">
+          <div>
+            <p class="eyebrow">CURATED FOR YOU</p>
+            <h1 class="feed-title">Your feed <span id="articleCount" class="count">—</span></h1>
+          </div>
+          <div class="feed-tabs">
+            <button class="tab tab--active" data-feed="for-you">For You</button>
+            <button class="tab" data-feed="latest">Latest</button>
+            <button class="tab" data-feed="following">Following</button>
+          </div>
+        </div>
+
+        <div id="feedStatus" class="status" role="status" aria-live="polite"></div>
+        <div id="newsGrid" class="news-grid"></div>
+
+        <div class="load-more-wrap" id="loadMoreWrap" hidden>
+          <button id="loadMoreBtn" class="secondary-button">Load more stories</button>
+        </div>
+
+        <p class="source-note">Headlines and snippets belong to their original publishers. Follow source links for full stories.</p>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+  <script src="./config.js"></script>
+  <script type="module">
+    import { requireAuth, signOut, needsOnboarding, getUser } from "./js/auth.js";
+    import { fetchFeedForYou, fetchFeedLatest, fetchFeedFollowing, fetchPreferences, fetchBookmarks, recordInteraction } from "./js/api.js";
+    import { renderArticleGrid, renderSkeletons, observeImpressions } from "./js/components.js";
+    import { toast } from "./js/utils.js";
+
+    window.lucide?.createIcons();
+
+    const session = await requireAuth("./login.html");
+    if (!session) throw new Error("Not authenticated");
+
+    // Check if onboarding needed
+    const shouldOnboard = await needsOnboarding();
+    if (shouldOnboard) { location.replace("./onboarding.html"); }
+
+    let currentFeed = "for-you";
+    let currentPage = 1;
+    let allArticles = [];
+    let bookmarkSet = new Set();
+    let impressionQueue = [];
+    let impressionTimer = null;
+
+    // Load bookmarks set for UI
+    try {
+      const bm = await fetchBookmarks();
+      bookmarkSet = new Set((bm.bookmarks || []).map(b => b.article_id));
+    } catch {}
+
+    // Load sidebar topics from preferences
+    loadSidebarTopics();
+
+    // Initial feed load
+    await loadFeed(currentFeed, 1, true);
+
+    // ── Feed loading ──────────────────────────────────────────────────────────
+    async function loadFeed(mode, page, replace = false) {
+      const grid = document.getElementById("newsGrid");
+      const status = document.getElementById("feedStatus");
+      if (replace) {
+        renderSkeletons(grid, 6);
+        status.textContent = "";
+      }
+      document.getElementById("loadMoreWrap").hidden = true;
+
+      try {
+        let result;
+        if (mode === "for-you") result = await fetchFeedForYou({ page, pageSize: 20 });
+        else if (mode === "latest") result = await fetchFeedLatest({ page, pageSize: 20 });
+        else result = await fetchFeedFollowing({ page, pageSize: 20 });
+
+        const articles = result.articles || [];
+        if (replace) {
+          allArticles = articles;
+        } else {
+          allArticles = [...allArticles, ...articles];
+        }
+
+        if (!allArticles.length) {
+          grid.innerHTML = `<div class="empty-state">
+            <p>No articles yet. <a href="./discover.html">Add some topics</a> to personalize your feed.</p>
+          </div>`;
+          status.textContent = "";
+          document.getElementById("articleCount").textContent = "0";
+          return;
+        }
+
+        renderArticleGrid(grid, allArticles, bookmarkSet);
+        document.getElementById("articleCount").textContent = allArticles.length;
+        status.textContent = `Updated ${new Date().toLocaleTimeString()}`;
+
+        // Impression tracking
+        observeImpressions(grid, allArticles, (article) => {
+          impressionQueue.push({
+            article_id: article.id,
+            article_url: article.url,
+            event_type: "impression",
+            topic_slug: (article.categories || [])[0] || null,
+            provider: article.provider || null,
+            metadata: {},
+          });
+          if (!impressionTimer) {
+            impressionTimer = setTimeout(flushImpressions, 5000);
+          }
+        });
+
+        // Show load more if there could be more
+        if (articles.length >= 20) {
+          document.getElementById("loadMoreWrap").hidden = false;
+        }
+        currentPage = page;
+      } catch (err) {
+        if (replace) {
+          grid.innerHTML = `<div class="empty-state error-state">
+            <p>Could not load your feed. Check that the backend is running.</p>
+            <button class="secondary-button" onclick="location.reload()">Retry</button>
+          </div>`;
+        }
+        status.textContent = `Error: ${err.message}`;
+      }
+    }
+
+    async function flushImpressions() {
+      impressionTimer = null;
+      if (!impressionQueue.length) return;
+      const batch = impressionQueue.splice(0);
+      try {
+        const { recordInteractionsBatch } = await import("./js/api.js");
+        await recordInteractionsBatch(batch);
+      } catch {}
+    }
+
+    // ── Feed tab switching ────────────────────────────────────────────────────
+    document.querySelectorAll(".tab[data-feed]").forEach(tab => {
+      tab.addEventListener("click", async () => {
+        document.querySelectorAll(".tab[data-feed]").forEach(t => t.classList.remove("tab--active"));
+        tab.classList.add("tab--active");
+        currentFeed = tab.dataset.feed;
+        await loadFeed(currentFeed, 1, true);
+      });
+    });
+
+    document.getElementById("loadMoreBtn").addEventListener("click", () => {
+      loadFeed(currentFeed, currentPage + 1, false);
+    });
+
+    // ── Sign out ──────────────────────────────────────────────────────────────
+    document.getElementById("signOutBtn").addEventListener("click", async () => {
+      await signOut();
+      location.replace("./login.html");
+    });
+
+    // ── Search toggle ─────────────────────────────────────────────────────────
+    document.getElementById("searchToggle").addEventListener("click", () => {
+      const wrap = document.getElementById("searchBarWrap");
+      wrap.hidden = !wrap.hidden;
+      if (!wrap.hidden) document.getElementById("searchBarInput").focus();
+    });
+    document.getElementById("searchClose").addEventListener("click", () => {
+      document.getElementById("searchBarWrap").hidden = true;
+    });
+    document.getElementById("searchBarForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const q = document.getElementById("searchBarInput").value.trim();
+      if (!q) return;
+      location.href = `./discover.html?q=${encodeURIComponent(q)}`;
+    });
+
+    // ── Sidebar topics ─────────────────────────────────────────────────────────
+    async function loadSidebarTopics() {
+      const sidebar = document.getElementById("sidebarTopics");
+      try {
+        const prefs = await fetchPreferences();
+        const interests = prefs.interests || [];
+        if (!interests.length) {
+          sidebar.innerHTML = `<a href="./discover.html" class="sidebar-link sidebar-link--muted">Add your first topic</a>`;
+          return;
+        }
+        sidebar.innerHTML = interests.slice(0, 10).map(i => `
+          <a href="./discover.html?topic=${encodeURIComponent(i.category_slug)}" class="sidebar-topic-item">
+            ${i.category_slug}
+          </a>
+        `).join("");
+      } catch {
+        sidebar.innerHTML = `<a href="./discover.html" class="sidebar-link sidebar-link--muted">Add topics</a>`;
+      }
+    }
+  </script>
+</body>
+</html>
+
+

@@ -1,0 +1,126 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F2F0EA">
+  <title>Insights — NovaPress</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./js/lucide.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./dashboard.html"><img src="./logo.svg" alt="NovaPress" class="brand-logo"></a>
+    <nav class="top-nav">
+      <a href="./dashboard.html" class="nav-link">Feed</a>
+      <a href="./discover.html" class="nav-link">Discover</a>
+      <a href="./bookmarks.html" class="nav-link">Bookmarks</a>
+      <a href="./insights.html" class="nav-link nav-link--active">Insights</a>
+    </nav>
+    <div class="topbar-right"><a href="./settings.html" class="icon-button" title="Settings"><i data-lucide="settings"></i></a></div>
+  </header>
+  <nav class="mobile-nav">
+    <a href="./dashboard.html" class="mobile-nav-item"><i data-lucide="newspaper"></i><span>Feed</span></a>
+    <a href="./discover.html" class="mobile-nav-item"><i data-lucide="compass"></i><span>Discover</span></a>
+    <a href="./bookmarks.html" class="mobile-nav-item"><i data-lucide="bookmark"></i><span>Saved</span></a>
+    <a href="./insights.html" class="mobile-nav-item mobile-nav-item--active"><i data-lucide="bar-chart-2"></i><span>Insights</span></a>
+    <a href="./settings.html" class="mobile-nav-item"><i data-lucide="settings"></i><span>Settings</span></a>
+  </nav>
+
+  <main class="shell">
+    <div class="page-header">
+      <h1 class="page-title">My Insights</h1>
+      <p class="page-subtitle">How your feed is personalized and what you've been reading</p>
+    </div>
+    <div id="insightsContent">
+      <div class="spinner" aria-label="Loading insights"></div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+  <script src="./config.js"></script>
+  <script type="module">
+    import { requireAuth } from "./js/auth.js";
+    import { fetchInsights } from "./js/api.js";
+
+    window.lucide?.createIcons();
+    await requireAuth("./login.html");
+
+    const container = document.getElementById("insightsContent");
+    try {
+      const data = await fetchInsights();
+      renderInsights(data);
+    } catch (err) {
+      container.innerHTML = `<div class="empty-state error-state"><p>${err.message}</p></div>`;
+    }
+
+    function renderInsights(data) {
+      const topClicked = data.top_clicked_topics || [];
+      const topBookmarked = data.top_bookmarked_categories || [];
+      const followed = data.followed_topics || [];
+      const activity = data.daily_activity || [];
+
+      container.innerHTML = `
+        <div class="insights-grid">
+          <div class="insight-card">
+            <p class="eyebrow">OVERVIEW</p>
+            <div class="stat-row">
+              <div class="stat-item"><div class="stat-value">${data.total_interactions || 0}</div><div class="stat-label">Interactions</div></div>
+              <div class="stat-item"><div class="stat-value">${data.total_bookmarks || 0}</div><div class="stat-label">Bookmarks</div></div>
+              <div class="stat-item"><div class="stat-value">${followed.length}</div><div class="stat-label">Topics followed</div></div>
+            </div>
+          </div>
+
+          <div class="insight-card">
+            <p class="eyebrow">TOPICS YOU FOLLOW</p>
+            ${followed.length ? `
+              <div class="insight-list">
+                ${followed.map(t => `
+                  <div class="insight-row">
+                    <span class="insight-label">${t.slug}</span>
+                    <span class="insight-bar-wrap"><span class="insight-bar" style="width:${Math.min(100, t.strength * 60)}%"></span></span>
+                  </div>
+                `).join("")}
+              </div>
+            ` : `<p class="muted">No topics followed yet. <a href="./discover.html">Discover topics</a></p>`}
+          </div>
+
+          <div class="insight-card">
+            <p class="eyebrow">MOST CLICKED TOPICS</p>
+            ${topClicked.length ? `
+              <div class="insight-list">
+                ${topClicked.map(([slug, count]) => `
+                  <div class="insight-row">
+                    <span class="insight-label">${slug}</span>
+                    <span class="insight-value">${count} clicks</span>
+                  </div>
+                `).join("")}
+              </div>
+            ` : `<p class="muted">No click data yet</p>`}
+          </div>
+
+          <div class="insight-card">
+            <p class="eyebrow">RECENT READING ACTIVITY</p>
+            ${activity.length ? `
+              <div class="activity-bars">
+                ${activity.slice(-14).map(([day, count]) => `
+                  <div class="activity-bar-col">
+                    <div class="activity-bar" style="height:${Math.min(100, count * 8)}%" title="${count} events on ${day}"></div>
+                    <span class="activity-day">${day.slice(5)}</span>
+                  </div>
+                `).join("")}
+              </div>
+            ` : `<p class="muted">No activity recorded yet</p>`}
+          </div>
+        </div>
+
+        <p class="fine-print" style="margin-top:24px">${data.data_note || ""}</p>
+      `;
+    }
+  </script>
+</body>
+</html>
+
+

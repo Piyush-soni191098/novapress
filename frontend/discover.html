@@ -1,0 +1,208 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F2F0EA">
+  <title>Discover — NovaPress</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./js/lucide.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./dashboard.html"><img src="./logo.svg" alt="NovaPress" class="brand-logo"></a>
+    <nav class="top-nav">
+      <a href="./dashboard.html" class="nav-link">Feed</a>
+      <a href="./discover.html" class="nav-link nav-link--active">Discover</a>
+      <a href="./bookmarks.html" class="nav-link">Bookmarks</a>
+      <a href="./insights.html" class="nav-link">Insights</a>
+    </nav>
+    <div class="topbar-right">
+      <a href="./settings.html" class="icon-button" title="Settings"><i data-lucide="settings"></i></a>
+    </div>
+  </header>
+  <nav class="mobile-nav">
+    <a href="./dashboard.html" class="mobile-nav-item"><i data-lucide="newspaper"></i><span>Feed</span></a>
+    <a href="./discover.html" class="mobile-nav-item mobile-nav-item--active"><i data-lucide="compass"></i><span>Discover</span></a>
+    <a href="./bookmarks.html" class="mobile-nav-item"><i data-lucide="bookmark"></i><span>Saved</span></a>
+    <a href="./insights.html" class="mobile-nav-item"><i data-lucide="bar-chart-2"></i><span>Insights</span></a>
+    <a href="./settings.html" class="mobile-nav-item"><i data-lucide="settings"></i><span>Settings</span></a>
+  </nav>
+
+  <main class="shell">
+    <div class="page-header">
+      <h1 class="page-title">Discover Topics</h1>
+      <p class="page-subtitle">Search and follow topics to build your personalized feed</p>
+    </div>
+
+    <div class="discover-search-wrap">
+      <input type="search" id="topicSearch" placeholder="Search topics or enter keywords…" class="discover-search">
+    </div>
+
+    <div id="topicsSection">
+      <p class="eyebrow" style="margin-top:24px">ALL TOPICS</p>
+      <div id="topicsGrid" class="topic-list">
+        <div class="spinner" aria-label="Loading topics"></div>
+      </div>
+    </div>
+
+    <div id="articleSection" hidden>
+      <div class="feed-heading" style="margin-top:32px">
+        <div>
+          <p class="eyebrow">ARTICLES</p>
+          <h2 class="feed-title" id="articleSectionTitle">Results</h2>
+        </div>
+        <button id="clearSearch" class="secondary-button">← Topics</button>
+      </div>
+      <div id="articleStatus" class="status" role="status"></div>
+      <div id="articleGrid" class="news-grid"></div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+  <script src="./config.js"></script>
+  <script type="module">
+    import { getSession } from "./js/auth.js";
+    import { fetchCategories, fetchTopicNews, searchNews, fetchBookmarks, fetchPreferences, setInterests } from "./js/api.js";
+    import { iconHtml } from "./js/icons.js";
+    import { renderArticleGrid, renderSkeletons } from "./js/components.js";
+    import { debounce, toast } from "./js/utils.js";
+
+    const params = new URLSearchParams(location.search);
+    const initialQ = params.get("q") || "";
+    const initialTopic = params.get("topic") || "";
+
+    let allCategories = [];
+    let userInterestSlugs = new Set();
+    let bookmarkSet = new Set();
+    const session = await getSession();
+
+    if (session) {
+      try {
+        const bm = await fetchBookmarks();
+        bookmarkSet = new Set((bm.bookmarks || []).map(b => b.article_id));
+        const prefs = await fetchPreferences();
+        userInterestSlugs = new Set((prefs.interests || []).map(i => i.category_slug));
+      } catch {}
+    }
+
+    async function loadTopics(q = "") {
+      const grid = document.getElementById("topicsGrid");
+      try {
+        const data = await fetchCategories(q);
+        allCategories = data.categories || [];
+        renderTopicChips(allCategories);
+      } catch {
+        grid.innerHTML = `<div class="empty-state">Could not load topics</div>`;
+      }
+    }
+
+    function renderTopicChips(cats) {
+      const grid = document.getElementById("topicsGrid");
+      grid.innerHTML = cats.map(c => `
+        <div class="topic-card" data-slug="${c.slug}">
+          <div class="topic-card-icon">${iconHtml(c.slug)}</div>
+          <div class="topic-card-info">
+            <div class="topic-card-name">${c.name}</div>
+            <div class="topic-card-desc">${c.description || ""}</div>
+          </div>
+          <button class="topic-follow-btn ${userInterestSlugs.has(c.slug) ? "topic-follow-btn--following" : ""}"
+            data-slug="${c.slug}" aria-label="${userInterestSlugs.has(c.slug) ? "Unfollow" : "Follow"} ${c.name}">
+            ${userInterestSlugs.has(c.slug) ? "✓ Following" : "+ Follow"}
+          </button>
+        </div>
+      `).join("");
+
+      grid.querySelectorAll(".topic-follow-btn").forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          if (!session) { toast("Sign in to follow topics", "error"); return; }
+          const slug = btn.dataset.slug;
+          if (userInterestSlugs.has(slug)) {
+            userInterestSlugs.delete(slug);
+            btn.textContent = "+ Follow";
+            btn.classList.remove("topic-follow-btn--following");
+          } else {
+            userInterestSlugs.add(slug);
+            btn.textContent = "✓ Following";
+            btn.classList.add("topic-follow-btn--following");
+          }
+          try {
+            await setInterests([...userInterestSlugs].map(s => ({ category_slug: s, strength: 1.0 })));
+            toast(userInterestSlugs.has(slug) ? `Now following ${slug}` : `Unfollowed ${slug}`, "success");
+          } catch { toast("Could not save preference", "error"); }
+        });
+      });
+
+      window.lucide?.createIcons();
+      // Click card to view articles
+      grid.querySelectorAll(".topic-card").forEach(card => {
+        card.addEventListener("click", (e) => {
+          if (e.target.closest(".topic-follow-btn")) return;
+          loadTopicArticles(card.dataset.slug);
+        });
+      });
+    }
+
+    async function loadTopicArticles(slug) {
+      document.getElementById("topicsSection").hidden = true;
+      document.getElementById("articleSection").hidden = false;
+      const cat = allCategories.find(c => c.slug === slug);
+      document.getElementById("articleSectionTitle").textContent = cat ? `${cat.icon || ""} ${cat.name}` : slug;
+      const grid = document.getElementById("articleGrid");
+      const status = document.getElementById("articleStatus");
+      renderSkeletons(grid, 6);
+      status.textContent = "";
+      try {
+        const data = await fetchTopicNews({ topic: slug, pageSize: 30 });
+        const articles = data.articles || [];
+        renderArticleGrid(grid, articles, bookmarkSet);
+        status.textContent = articles.length ? `${articles.length} articles found` : "";
+      } catch (err) {
+        grid.innerHTML = `<div class="empty-state">Could not load articles: ${err.message}</div>`;
+      }
+    }
+
+    document.getElementById("clearSearch").addEventListener("click", () => {
+      document.getElementById("topicsSection").hidden = false;
+      document.getElementById("articleSection").hidden = true;
+    });
+
+    document.getElementById("topicSearch").addEventListener("input", debounce(async (e) => {
+      const q = e.target.value.trim();
+      if (q.length > 1) {
+        document.getElementById("topicsSection").hidden = false;
+        document.getElementById("articleSection").hidden = true;
+        await loadTopics(q);
+      } else if (!q) {
+        await loadTopics();
+      }
+    }, 300));
+
+    // Initial load
+    if (initialQ) {
+      document.getElementById("topicSearch").value = initialQ;
+      document.getElementById("topicsSection").hidden = true;
+      document.getElementById("articleSection").hidden = false;
+      document.getElementById("articleSectionTitle").textContent = `Search: "${initialQ}"`;
+      const grid = document.getElementById("articleGrid");
+      renderSkeletons(grid, 6);
+      try {
+        const data = await searchNews({ q: initialQ, limit: 30 });
+        renderArticleGrid(grid, data.articles || [], bookmarkSet);
+      } catch (err) {
+        grid.innerHTML = `<div class="empty-state">${err.message}</div>`;
+      }
+    } else if (initialTopic) {
+      await loadTopics();
+      await loadTopicArticles(initialTopic);
+    } else {
+      await loadTopics();
+    }
+  </script>
+</body>
+</html>
+
+

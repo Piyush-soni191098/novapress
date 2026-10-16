@@ -1,0 +1,92 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F2F0EA">
+  <title>Bookmarks — NovaPress</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./js/lucide.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./dashboard.html"><img src="./logo.svg" alt="NovaPress" class="brand-logo"></a>
+    <nav class="top-nav">
+      <a href="./dashboard.html" class="nav-link">Feed</a>
+      <a href="./discover.html" class="nav-link">Discover</a>
+      <a href="./bookmarks.html" class="nav-link nav-link--active">Bookmarks</a>
+      <a href="./insights.html" class="nav-link">Insights</a>
+    </nav>
+    <div class="topbar-right"><a href="./settings.html" class="icon-button" title="Settings"><i data-lucide="settings"></i></a></div>
+  </header>
+  <nav class="mobile-nav">
+    <a href="./dashboard.html" class="mobile-nav-item"><i data-lucide="newspaper"></i><span>Feed</span></a>
+    <a href="./discover.html" class="mobile-nav-item"><i data-lucide="compass"></i><span>Discover</span></a>
+    <a href="./bookmarks.html" class="mobile-nav-item mobile-nav-item--active"><i data-lucide="bookmark"></i><span>Saved</span></a>
+    <a href="./insights.html" class="mobile-nav-item"><i data-lucide="bar-chart-2"></i><span>Insights</span></a>
+    <a href="./settings.html" class="mobile-nav-item"><i data-lucide="settings"></i><span>Settings</span></a>
+  </nav>
+
+  <main class="shell">
+    <div class="page-header">
+      <h1 class="page-title">Bookmarks <span id="bmCount" class="count">—</span></h1>
+      <p class="page-subtitle">Articles you've saved for later</p>
+    </div>
+    <div id="status" class="status" role="status"></div>
+    <div id="bookmarkGrid" class="news-grid">
+      <div class="spinner" aria-label="Loading bookmarks"></div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+  <script src="./config.js"></script>
+  <script type="module">
+    import { requireAuth } from "./js/auth.js";
+    import { fetchBookmarks } from "./js/api.js";
+    import { renderArticleGrid } from "./js/components.js";
+
+    window.lucide?.createIcons();
+    await requireAuth("./login.html");
+
+    const grid = document.getElementById("bookmarkGrid");
+    const status = document.getElementById("status");
+
+    try {
+      const data = await fetchBookmarks();
+      const bookmarks = data.bookmarks || [];
+      document.getElementById("bmCount").textContent = bookmarks.length;
+
+      const articles = bookmarks.map(b => ({
+        id: b.article_id,
+        title: b.title,
+        description: b.description || "",
+        url: b.article_url,
+        image_url: b.image_url,
+        source: b.source,
+        published_at: b.published_at,
+        categories: b.categories || [],
+        provider: b.provider,
+      }));
+
+      const bookmarkSet = new Set(bookmarks.map(b => b.article_id));
+      renderArticleGrid(grid, articles, bookmarkSet);
+
+      if (!articles.length) {
+        grid.innerHTML = `<div class="empty-state">
+          <div class="empty-icon"><i data-lucide="bookmark"></i></div>
+          <p style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px">No saved articles yet</p>
+          <p>Click the bookmark icon on any article to save it here.</p>
+          <a href="./dashboard.html" class="primary-button" style="margin-top:20px">Go to feed →</a>
+        </div>`;
+        window.lucide?.createIcons();
+      }
+    } catch (err) {
+      grid.innerHTML = `<div class="empty-state error-state"><p>${err.message}</p></div>`;
+    }
+  </script>
+</body>
+</html>
+
+

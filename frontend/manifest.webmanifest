@@ -1,0 +1,18 @@
+{
+  "name": "NovaPress \u2014 Personalized News",
+  "short_name": "NovaPress",
+  "description": "Personalized technology, AI and stock-market news.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F2F0EA",
+  "theme_color": "#D4B779",
+  "icons": [
+    {
+      "src": "./icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,226 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F2F0EA">
+  <title>Personalize Your Feed — NovaPress</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./js/lucide.min.js"></script>
+</head>
+<body class="onboarding-page">
+  <div class="onboarding-shell">
+    <div class="onboarding-header">
+      <a href="./index.html" class="brand"><img src="./logo.svg" alt="NovaPress" class="brand-logo"></a>
+      <span class="step-counter" id="stepCounter">Step 1 of 4</span>
+    </div>
+
+    <div class="onboarding-progress">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:25%"></div></div>
+    </div>
+
+    <!-- Step 1: Welcome -->
+    <section class="onboarding-step" id="step1">
+      <div class="step-icon"><i data-lucide="newspaper"></i></div>
+      <h1 class="step-title">Your news, your way</h1>
+      <p class="step-desc">NovaPress learns what you care about and builds a feed that keeps you informed — without the noise. In a few steps, we'll personalize your experience.</p>
+      <div class="step-features">
+        <div class="feature-item"><div class="feat-icon"><i data-lucide="rss"></i></div><p>Articles from trusted providers including NewsAPI, GNews, and Marketaux</p></div>
+        <div class="feature-item"><div class="feat-icon"><i data-lucide="brain"></i></div><p>Recommendations that adapt to your reading behavior</p></div>
+        <div class="feature-item"><div class="feat-icon"><i data-lucide="lock"></i></div><p>Your data stays private and under your control</p></div>
+      </div>
+      <button class="primary-button" id="step1Next">Let's get started <span>→</span></button>
+    </section>
+
+    <!-- Step 2: Select interests -->
+    <section class="onboarding-step" id="step2" hidden>
+      <h1 class="step-title">What do you want to follow?</h1>
+      <p class="step-desc">Select the topics you care about. You can add or remove these anytime.</p>
+      <div class="interest-search-wrap">
+        <input type="search" id="interestSearch" placeholder="Search topics…" class="interest-search">
+      </div>
+      <div id="selectedCount" class="selected-count">0 topics selected</div>
+      <div id="categoriesGrid" class="categories-grid">
+        <div class="spinner" aria-label="Loading topics"></div>
+      </div>
+      <div class="step-actions">
+        <button class="secondary-button" id="step2Back">â† Back</button>
+        <button class="primary-button" id="step2Next">Continue <span>→</span></button>
+      </div>
+    </section>
+
+    <!-- Step 3: Refine preferences -->
+    <section class="onboarding-step" id="step3" hidden>
+      <h1 class="step-title">Refine your preferences</h1>
+      <p class="step-desc">Optional — help us understand your context. Skip anytime.</p>
+
+      <div class="pref-fields">
+        <div class="field">
+          <label for="dispName"><span>DISPLAY NAME (OPTIONAL)</span></label>
+          <input id="dispName" type="text" placeholder="How should we call you?" maxlength="60">
+        </div>
+
+        <div class="field">
+          <label for="prefLanguage"><span>PREFERRED LANGUAGE</span></label>
+          <select id="prefLanguage">
+            <option value="en">English</option>
+            <option value="hi">Hindi</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="es">Spanish</option>
+            <option value="pt">Portuguese</option>
+            <option value="ar">Arabic</option>
+            <option value="zh">Chinese</option>
+            <option value="ja">Japanese</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="prefCountry"><span>REGION / COUNTRY (OPTIONAL)</span></label>
+          <input id="prefCountry" type="text" placeholder="e.g. India, US, UK" maxlength="60">
+        </div>
+
+        <div class="field">
+          <label><span>TRACKING PREFERENCES</span></label>
+          <label class="toggle-row">
+            <input type="checkbox" id="enableTracking" checked>
+            <span class="toggle-label">Allow NovaPress to learn from my reading to improve recommendations</span>
+          </label>
+          <p class="fine-print">You can change this anytime in Settings. We never sell your data.</p>
+        </div>
+      </div>
+
+      <div class="step-actions">
+        <button class="secondary-button" id="step3Back">â† Back</button>
+        <button class="primary-button" id="step3Next">Almost done <span>→</span></button>
+      </div>
+    </section>
+
+    <!-- Step 4: Save and launch -->
+    <section class="onboarding-step" id="step4" hidden>
+      <div class="step-icon"><i data-lucide="rocket"></i></div>
+      <h1 class="step-title">You're all set!</h1>
+      <p class="step-desc" id="step4Summary">Your personalized feed is ready. We'll keep refining it as you read.</p>
+      <div id="interestSummary" class="interest-summary"></div>
+      <button class="primary-button" id="step4Launch" style="width:100%;justify-content:center">
+        Open my feed <span>→</span>
+      </button>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+  <script src="./config.js"></script>
+  <script type="module">
+    import { requireAuth } from "./js/auth.js";
+    import { fetchCategories, saveOnboarding } from "./js/api.js";
+    import { toast, debounce } from "./js/utils.js";
+    import { iconHtml } from "./js/icons.js";
+
+    const session = await requireAuth("./login.html");
+    if (!session) throw new Error("Not authenticated");
+
+    window.lucide?.createIcons();
+
+    let currentStep = 1;
+    const selectedSlugs = new Set();
+    let allCategories = [];
+
+    // â”€â”€ Step navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    function showStep(n) {
+      [1, 2, 3, 4].forEach(i => {
+        document.getElementById(`step${i}`).hidden = i !== n;
+      });
+      currentStep = n;
+      document.getElementById("stepCounter").textContent = `Step ${n} of 4`;
+      document.getElementById("progressFill").style.width = `${n * 25}%`;
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    document.getElementById("step1Next").addEventListener("click", () => {
+      showStep(2);
+      loadCategories();
+    });
+    document.getElementById("step2Back").addEventListener("click", () => showStep(1));
+    document.getElementById("step2Next").addEventListener("click", () => {
+      if (selectedSlugs.size === 0) { toast("Select at least one topic to continue", "error"); return; }
+      showStep(3);
+    });
+    document.getElementById("step3Back").addEventListener("click", () => showStep(2));
+    document.getElementById("step3Next").addEventListener("click", () => {
+      updateStep4Summary();
+      showStep(4);
+    });
+
+    // â”€â”€ Load categories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    async function loadCategories(q = "") {
+      const grid = document.getElementById("categoriesGrid");
+      try {
+        const data = await fetchCategories(q);
+        allCategories = data.categories || [];
+        renderCategories(allCategories);
+      } catch {
+        grid.innerHTML = `<div class="empty-state">Could not load topics. Check the backend is running.</div>`;
+      }
+    }
+
+    function renderCategories(cats) {
+      const grid = document.getElementById("categoriesGrid");
+      if (!cats.length) { grid.innerHTML = `<div class="empty-state">No topics found</div>`; return; }
+      grid.innerHTML = cats.map(c => `
+        <button class="cat-chip ${selectedSlugs.has(c.slug) ? "cat-chip--selected" : ""}" data-slug="${c.slug}" aria-pressed="${selectedSlugs.has(c.slug)}">
+          <span class="cat-icon">${iconHtml(c.slug, 20)}</span>
+          <span class="cat-name">${c.name}</span>
+        </button>
+      `).join("");
+      grid.querySelectorAll(".cat-chip").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const slug = btn.dataset.slug;
+          if (selectedSlugs.has(slug)) { selectedSlugs.delete(slug); btn.classList.remove("cat-chip--selected"); btn.setAttribute("aria-pressed", "false"); }
+          else { selectedSlugs.add(slug); btn.classList.add("cat-chip--selected"); btn.setAttribute("aria-pressed", "true"); }
+          document.getElementById("selectedCount").textContent = `${selectedSlugs.size} topic${selectedSlugs.size !== 1 ? "s" : ""} selected`;
+        });
+      });
+      document.getElementById("selectedCount").textContent = `${selectedSlugs.size} topic${selectedSlugs.size !== 1 ? "s" : ""} selected`;
+      window.lucide?.createIcons();
+    }
+
+    document.getElementById("interestSearch").addEventListener("input", debounce((e) => {
+      loadCategories(e.target.value);
+    }, 300));
+
+    // â”€â”€ Step 4 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    function updateStep4Summary() {
+      const selected = allCategories.filter(c => selectedSlugs.has(c.slug));
+      const summary = document.getElementById("interestSummary");
+      summary.innerHTML = selected.map(c => `<span class="interest-pill">${iconHtml(c.slug, 14)} ${c.name}</span>`).join("");
+      window.lucide?.createIcons();
+    }
+
+    document.getElementById("step4Launch").addEventListener("click", async () => {
+      const btn = document.getElementById("step4Launch");
+      btn.disabled = true; btn.textContent = "Saving your preferences…";
+      try {
+        await saveOnboarding({
+          display_name: document.getElementById("dispName").value.trim() || null,
+          interests: [...selectedSlugs],
+          language: document.getElementById("prefLanguage").value,
+          country: document.getElementById("prefCountry").value.trim() || null,
+          muted_topics: [],
+          preferred_publishers: [],
+          tracking_enabled: document.getElementById("enableTracking").checked,
+        });
+        location.replace("./dashboard.html");
+      } catch (err) {
+        btn.disabled = false; btn.innerHTML = 'Open my feed <span>→</span>';
+        toast(err.message || "Could not save preferences. You can update them in Settings.", "error");
+        // Still let them proceed
+        setTimeout(() => location.replace("./dashboard.html"), 2000);
+      }
+    });
+  </script>
+</body>
+</html>
+
+

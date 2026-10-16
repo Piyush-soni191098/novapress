@@ -1,0 +1,66 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F2F0EA">
+  <meta name="description" content="Personalized news intelligence platform">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./js/lucide.min.js"></script>
+  <title>NovaPress — Personalized News</title>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="NovaPress home"><img src="./logo.svg" alt="NovaPress" class="brand-logo"></a>
+    <span class="live-label"><span class="pulse"></span> YOUR DAILY SIGNAL</span>
+  </header>
+
+  <main class="shell">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">LESS NOISE. MORE SIGNAL.</p>
+        <h1>News that moves<br><em>your world.</em></h1>
+        <p class="hero-sub">Your interests. Your region. The stories worth your time.</p>
+        <div class="hero-actions">
+          <a href="./register.html" class="primary-button">Get started free <span>→</span></a>
+          <a href="./login.html" class="secondary-button">Sign in</a>
+        </div>
+      </div>
+      <div class="hero-logo-visual" aria-hidden="true">
+        <img src="./logo.svg" alt="" class="hero-logo-img">
+      </div>
+    </section>
+
+    <section class="features-row">
+      <div class="feature-card">
+        <div class="feature-icon"><i data-lucide="rss"></i></div>
+        <h3>Three live providers</h3>
+        <p>NewsAPI, GNews, and Marketaux — deduplicated and ranked for you.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><i data-lucide="brain"></i></div>
+        <h3>Adaptive recommendations</h3>
+        <p>Your feed improves as you read. Like, save, or mute topics to refine it.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><i data-lucide="globe"></i></div>
+        <h3>30+ categories</h3>
+        <p>Technology, cricket, finance, science, entertainment and much more.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+  <script src="./config.js"></script>
+  <script type="module">
+    import { getSession } from "./js/auth.js";
+    window.lucide?.createIcons();
+    const session = await getSession();
+    if (session) location.replace("./dashboard.html");
+  </script>
+</body>
+</html>
+
+

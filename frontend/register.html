@@ -1,0 +1,323 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F2F0EA">
+  <title>Create Account — NovaPress</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./js/lucide.min.js"></script>
+  <style>
+    /* OTP input row */
+    .otp-row {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin: 24px 0 8px;
+    }
+    .otp-row input {
+      width: 48px;
+      height: 56px;
+      text-align: center;
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: 0;
+      border-radius: 10px;
+      border: 1.5px solid var(--border, #2a3450);
+      background: var(--input-bg, #0d1526);
+      color: var(--text, #e8eaf6);
+      caret-color: #4f8ef7;
+      transition: border-color .15s;
+    }
+    .otp-row input:focus {
+      outline: none;
+      border-color: #4f8ef7;
+      box-shadow: 0 0 0 3px rgba(79,142,247,.18);
+    }
+    .otp-timer {
+      text-align: center;
+      font-size: .82rem;
+      color: var(--muted, #7b8ab8);
+      margin-bottom: 4px;
+    }
+    .otp-timer span { color: #4f8ef7; font-weight: 600; }
+    .otp-resend-btn {
+      background: none;
+      border: none;
+      color: #4f8ef7;
+      cursor: pointer;
+      font-size: .88rem;
+      text-decoration: underline;
+      padding: 0;
+    }
+    .otp-resend-btn:disabled { color: var(--muted, #7b8ab8); cursor: default; text-decoration: none; }
+    .confirm-icon { font-size: 2.4rem; text-align: center; margin-bottom: 8px; }
+  </style>
+</head>
+<body class="auth-page">
+  <div class="auth-layout">
+    <div class="auth-brand">
+      <a href="./index.html" class="brand" aria-label="NovaPress home">
+        <img src="./logo.svg" alt="NovaPress" class="brand-logo">
+      </a>
+      <p class="auth-tagline">Join thousands of readers who get smarter every day.</p>
+    </div>
+
+    <!-- Step 1: Registration form -->
+    <div class="auth-card" id="regCard">
+      <h1 class="auth-title">Create your account</h1>
+      <p class="auth-subtitle">Free forever. No credit card required.</p>
+
+      <div id="authNotice" class="auth-notice" hidden></div>
+
+      <form id="registerForm" class="auth-form" novalidate>
+        <div class="field">
+          <label for="email"><span>EMAIL</span></label>
+          <input id="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+          <span class="field-error" id="emailError"></span>
+        </div>
+
+        <div class="field">
+          <label for="password"><span>PASSWORD</span></label>
+          <div class="input-with-toggle">
+            <input id="password" type="password" autocomplete="new-password" placeholder="At least 8 characters" required minlength="8">
+            <button type="button" class="toggle-pw" id="togglePw" aria-label="Show password"><i data-lucide="eye"></i></button>
+          </div>
+          <div class="pw-strength" id="pwStrength" aria-live="polite"></div>
+          <span class="field-error" id="passwordError"></span>
+        </div>
+
+        <div class="field">
+          <label for="confirmPassword"><span>CONFIRM PASSWORD</span></label>
+          <input id="confirmPassword" type="password" autocomplete="new-password" placeholder="Repeat password" required>
+          <span class="field-error" id="confirmError"></span>
+        </div>
+
+        <button type="submit" id="submitBtn" class="primary-button w-full">Create account <span>→</span></button>
+      </form>
+
+      <p class="auth-switch">Already have an account? <a href="./login.html" class="auth-link">Sign in</a></p>
+    </div>
+
+    <!-- Step 2: OTP verification -->
+    <div class="auth-card" id="otpCard" hidden>
+      <div class="confirm-icon">ðŸ“¬</div>
+      <h1 class="auth-title">Verify your email</h1>
+      <p class="auth-subtitle" id="otpMsg">We sent a 6-digit code to your email. Enter it below.</p>
+
+      <div id="otpNotice" class="auth-notice" hidden></div>
+
+      <div class="otp-row" id="otpRow">
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
+      </div>
+
+      <p class="otp-timer" id="otpTimer">Resend code in <span id="timerCount">60</span>s</p>
+
+      <button id="verifyBtn" class="primary-button w-full" style="margin-top:8px" disabled>
+        Verify <span>→</span>
+      </button>
+
+      <p class="auth-switch" style="margin-top:16px">
+        Didn't get it?
+        <button class="otp-resend-btn" id="resendBtn" disabled>Resend code</button>
+      </p>
+      <p class="auth-switch"><a href="./login.html" class="auth-link">â† Back to sign in</a></p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+  <script src="./config.js"></script>
+  <script type="module">
+    import { redirectIfAuthenticated, signUp, verifyOtp, resendVerification } from "./js/auth.js";
+    import { passwordStrength, renderPasswordStrength } from "./js/components.js";
+    import { toast } from "./js/utils.js";
+
+    redirectIfAuthenticated("./dashboard.html");
+
+    const form      = document.getElementById("registerForm");
+    const submitBtn = document.getElementById("submitBtn");
+    const pwInput   = document.getElementById("password");
+    const togglePw  = document.getElementById("togglePw");
+    const pwStrength= document.getElementById("pwStrength");
+    let timerInterval = null;
+
+    // Restore pending OTP step if user navigated back or came from login redirect
+    let signedUpEmail = sessionStorage.getItem("signal_pending_otp") || "";
+    const pendingParam = new URLSearchParams(location.search).get("pending_otp");
+    if (pendingParam) { signedUpEmail = pendingParam; sessionStorage.setItem("signal_pending_otp", signedUpEmail); }
+    if (signedUpEmail) showOtpStep(signedUpEmail, false);
+
+    // â”€â”€ Password toggle & strength â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    window.lucide?.createIcons();
+
+    togglePw.addEventListener("click", () => {
+      const isHidden = pwInput.type === "password";
+      pwInput.type = isHidden ? "text" : "password";
+      togglePw.innerHTML = isHidden
+        ? `<i data-lucide="eye-off" style="width:16px;height:16px"></i>`
+        : `<i data-lucide="eye" style="width:16px;height:16px"></i>`;
+      window.lucide?.createIcons();
+    });
+
+    pwInput.addEventListener("input", () => {
+      const score = passwordStrength(pwInput.value);
+      const { label, cls } = renderPasswordStrength(score);
+      pwStrength.innerHTML = label
+        ? `<div class="pw-bar"><div class="pw-fill pw-fill--${cls}" style="width:${score*20}%"></div></div><span class="pw-label">${label}</span>`
+        : "";
+    });
+
+    // â”€â”€ Registration form submit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      clearErrors();
+      const email   = document.getElementById("email").value.trim();
+      const password = pwInput.value;
+      const confirm  = document.getElementById("confirmPassword").value;
+
+      let valid = true;
+      if (!email)              { setError("emailError",    "Email is required");                  valid = false; }
+      if (password.length < 8) { setError("passwordError", "Password must be at least 8 characters"); valid = false; }
+      if (password !== confirm) { setError("confirmError", "Passwords do not match");             valid = false; }
+      if (!valid) return;
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Creating account…";
+      try {
+        await signUp(email, password);
+        signedUpEmail = email;
+        sessionStorage.setItem("signal_pending_otp", email);
+        showOtpStep(email, true);
+      } catch (err) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Create account <span>→</span>';
+        showNotice("authNotice", err.message || "Registration failed", "error");
+      }
+    });
+
+    // â”€â”€ OTP step â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    function showOtpStep(email, startCountdown = true) {
+      document.getElementById("regCard").hidden = true;
+      document.getElementById("otpCard").hidden = false;
+      document.getElementById("otpMsg").textContent =
+        `We sent a 6-digit code to ${email}. Enter it below to activate your account.`;
+      document.querySelector(".otp-digit").focus();
+      if (startCountdown) {
+        startTimer();
+      } else {
+        document.getElementById("otpTimer").hidden = true;
+        document.getElementById("resendBtn").disabled = false;
+      }
+    }
+
+    // Auto-advance OTP inputs
+    const digits = Array.from(document.querySelectorAll(".otp-digit"));
+    digits.forEach((input, i) => {
+      input.addEventListener("input", (e) => {
+        const val = e.target.value.replace(/\D/g, "");
+        e.target.value = val.slice(-1);
+        if (val && i < digits.length - 1) digits[i + 1].focus();
+        checkOtpFilled();
+      });
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Backspace" && !input.value && i > 0) digits[i - 1].focus();
+      });
+      input.addEventListener("paste", (e) => {
+        e.preventDefault();
+        const pasted = (e.clipboardData.getData("text") || "").replace(/\D/g, "").slice(0, 6);
+        pasted.split("").forEach((ch, idx) => { if (digits[idx]) digits[idx].value = ch; });
+        const last = Math.min(pasted.length, digits.length - 1);
+        digits[last].focus();
+        checkOtpFilled();
+      });
+    });
+
+    function getOtpValue() { return digits.map(d => d.value).join(""); }
+
+    function checkOtpFilled() {
+      const filled = getOtpValue().length === 6;
+      document.getElementById("verifyBtn").disabled = !filled;
+    }
+
+    document.getElementById("verifyBtn").addEventListener("click", async () => {
+      const token = getOtpValue();
+      if (token.length < 6) return;
+      const btn = document.getElementById("verifyBtn");
+      btn.disabled = true;
+      btn.textContent = "Verifying…";
+      try {
+        await verifyOtp(signedUpEmail, token);
+        sessionStorage.removeItem("signal_pending_otp");
+        location.replace("./onboarding.html");
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = 'Verify <span>→</span>';
+        digits.forEach(d => { d.value = ""; d.style.borderColor = "#e05252"; });
+        digits[0].focus();
+        showNotice("otpNotice", err.message || "Invalid code. Please try again.", "error");
+      }
+    });
+
+    // â”€â”€ Resend + countdown timer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    function startTimer(seconds = 60) {
+      clearInterval(timerInterval);
+      const timerEl  = document.getElementById("otpTimer");
+      const countEl  = document.getElementById("timerCount");
+      const resendBtn = document.getElementById("resendBtn");
+      resendBtn.disabled = true;
+      timerEl.hidden = false;
+      let remaining = seconds;
+      countEl.textContent = remaining;
+      timerInterval = setInterval(() => {
+        remaining--;
+        countEl.textContent = remaining;
+        if (remaining <= 0) {
+          clearInterval(timerInterval);
+          timerEl.hidden = true;
+          resendBtn.disabled = false;
+        }
+      }, 1000);
+    }
+
+    document.getElementById("resendBtn").addEventListener("click", async () => {
+      const btn = document.getElementById("resendBtn");
+      btn.disabled = true;
+      try {
+        await resendVerification(signedUpEmail);
+        toast("A new code has been sent to your email", "success");
+        digits.forEach(d => { d.value = ""; d.style.borderColor = ""; });
+        digits[0].focus();
+        document.getElementById("verifyBtn").disabled = true;
+        startTimer(60);
+      } catch {
+        toast("Could not resend code. Try again shortly.", "error");
+        btn.disabled = false;
+      }
+    });
+
+    // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    function setError(id, msg) { document.getElementById(id).textContent = msg; }
+    function clearErrors() {
+      ["emailError", "passwordError", "confirmError"].forEach(id =>
+        document.getElementById(id).textContent = "");
+      const n = document.getElementById("authNotice");
+      n.hidden = true;
+    }
+    function showNotice(id, msg, type) {
+      const el = document.getElementById(id);
+      el.textContent = msg;
+      el.className = `auth-notice auth-notice--${type}`;
+      el.hidden = false;
+    }
+  </script>
+</body>
+</html>
+
+
