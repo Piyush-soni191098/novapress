@@ -1,0 +1,28 @@
+# ── Secrets ──────────────────────────────────
+backend/.env
+
+# ── Python compiled ──────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# ── Virtual environments ──────────────────────
+.venv/
+venv/
+env/
+
+# ── Dev utilities (not part of the app) ───────
+frontend/fix_encoding.py
+frontend/serve.py
+
+# ── OS / editor ───────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ── Logs & temp ───────────────────────────────
+*.log
+*.tmp

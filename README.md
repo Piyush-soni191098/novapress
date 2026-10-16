@@ -1,6 +1,30 @@
-# Signal — Personalized News PWA
+# NovaPress — Personalized News PWA
 
-A full-featured, multi-user news intelligence platform. Aggregates headlines from NewsAPI, GNews, and Marketaux, ranks them with a weighted recommendation engine, and serves a personalized feed via a PWA frontend backed by FastAPI and Supabase.
+> Less noise. More signal. Your interests, your region, the stories worth your time.
+
+NovaPress is a full-stack Progressive Web App that aggregates headlines from multiple news providers, ranks them with a personalized recommendation engine, and delivers a clean, fast reading experience — all backed by FastAPI and Supabase.
+
+---
+
+## Features
+
+- **Personalized feed** — ranked by your reading history, liked topics, and muted sources
+- **3 live news providers** — NewsAPI, GNews, Marketaux (+ Google News RSS fallback)
+- **30+ categories** — Technology, Finance, Cricket, Science, Entertainment and more
+- **Bookmarks & Insights** — save articles, track your reading stats
+- **PWA** — installable, works offline, mobile-ready
+- **Auth** — email/password sign-up, email verification, password reset via Supabase Auth
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | Vanilla HTML / CSS / JS (PWA) |
+| Backend | FastAPI (Python 3.10+) |
+| Database & Auth | Supabase (PostgreSQL + Row Level Security) |
+| News Providers | NewsAPI · GNews · Marketaux · Google RSS |
 
 ---
 
@@ -8,89 +32,83 @@ A full-featured, multi-user news intelligence platform. Aggregates headlines fro
 
 ```
 ┌─────────────────────────────────────────┐
-│  Frontend (Vanilla HTML/CSS/JS PWA)      │
-│  login · register · onboarding           │
-│  dashboard · discover · bookmarks        │
-│  insights · settings                     │
+│  Frontend  (PWA)                         │
+│  index · login · register · onboarding  │
+│  dashboard · discover · bookmarks       │
+│  insights · settings                    │
 └────────────────────┬────────────────────┘
-                     │ REST (JSON)
+                     │ REST / JSON
 ┌────────────────────▼────────────────────┐
-│  FastAPI backend  (Python 3.10+)         │
-│  /api/feed  /api/news  /api/bookmarks    │
-│  /api/interactions  /api/preferences     │
-│  /api/insights  /api/categories          │
-│                                          │
-│  Providers:  NewsAPI · GNews · Marketaux │
-│              Google News RSS (fallback)  │
-│  Services:   ranking · categories · feed │
+│  FastAPI Backend                         │
+│  /api/feed  /api/news  /api/bookmarks   │
+│  /api/interactions  /api/preferences    │
+│  /api/insights  /api/categories         │
 └────────────────────┬────────────────────┘
                      │ Supabase SDK
 ┌────────────────────▼────────────────────┐
-│  Supabase (PostgreSQL + Auth)            │
-│  profiles · user_interests               │
-│  bookmarks · user_interactions           │
-│  user_feedback · user_preferences       │
+│  Supabase                                │
+│  PostgreSQL · Auth · Row Level Security  │
 └─────────────────────────────────────────┘
 ```
 
 ---
 
-## Prerequisites
-
-- Python 3.10 or later
-- A Supabase project (free tier is fine): <https://supabase.com>
-- API keys for at least one news provider (all three are recommended)
-
----
-
-## Folder structure
+## Project Structure
 
 ```
-personalized_news_pwa_starter/
+novapress/
 ├── backend/
 │   ├── app/
-│   │   ├── main.py            # FastAPI app, CORS, router registration
-│   │   ├── config.py          # Env-var loader
-│   │   ├── database.py        # Supabase client helpers
-│   │   ├── auth.py            # JWT verification dependency
-│   │   ├── models.py          # Pydantic models
-│   │   ├── providers/         # NewsAPI, GNews, Marketaux, RSS, selector
-│   │   ├── routers/           # health, news, feed, bookmarks, …
-│   │   └── services/          # categories, ranking, feed
+│   │   ├── main.py          # FastAPI entry point, CORS, router registration
+│   │   ├── config.py        # Environment variable loader
+│   │   ├── database.py      # Supabase client helpers
+│   │   ├── auth.py          # JWT verification dependency
+│   │   ├── models.py        # Pydantic request/response models
+│   │   ├── providers/       # NewsAPI, GNews, Marketaux, RSS, selector
+│   │   ├── routers/         # health, news, feed, bookmarks, interactions…
+│   │   └── services/        # categories, ranking, feed composition
 │   ├── tests/
-│   │   └── test_providers.py  # 33 unit tests
+│   │   └── test_providers.py
 │   ├── requirements.txt
-│   ├── pytest.ini
-│   └── .env                   # your secrets (never committed)
+│   ├── .env.example         # copy to .env and fill in your keys
+│   └── pytest.ini
 ├── frontend/
-│   ├── index.html             # landing page
+│   ├── index.html           # Landing page
 │   ├── login.html
 │   ├── register.html
-│   ├── forgot-password.html
-│   ├── reset-password.html
 │   ├── onboarding.html
 │   ├── dashboard.html
 │   ├── discover.html
 │   ├── bookmarks.html
 │   ├── insights.html
 │   ├── settings.html
-│   ├── config.js              # ← fill in your Supabase URL + anon key
+│   ├── config.js            # ← set your Supabase URL + anon key here
 │   ├── styles.css
-│   ├── sw.js                  # service worker (never caches auth requests)
+│   ├── logo.svg
+│   ├── sw.js                # Service worker
 │   ├── manifest.webmanifest
 │   └── js/
-│       ├── auth.js            # Supabase auth wrapper
-│       ├── api.js             # backend API client
-│       ├── components.js      # article cards, interactions
-│       └── utils.js           # shared helpers
+│       ├── auth.js          # Supabase auth wrapper
+│       ├── api.js           # Backend API client
+│       ├── components.js    # Article cards, interactions
+│       └── utils.js         # Shared helpers
 └── migrations/
-    ├── 001_initial_schema.sql # tables and indexes
-    └── 002_rls_policies.sql   # Row Level Security + auto-profile trigger
+    ├── 001_initial_schema.sql   # Tables, indexes, trigger
+    └── 002_rls_policies.sql     # Row Level Security policies
 ```
 
 ---
 
-## 1 — Clone and install backend dependencies
+## Getting Started
+
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/Piyush-soni191098/novapress.git
+cd novapress
+```
+
+### 2. Set up the backend
 
 ```bash
 cd backend
@@ -104,11 +122,13 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
----
+### 3. Configure environment variables
 
-## 2 — Set environment variables
+Copy `.env.example` to `.env` and fill in your keys:
 
-Open `backend/.env` (create it if missing — use `.env.example` as a template):
+```bash
+cp .env.example .env
+```
 
 ```dotenv
 # News providers
@@ -117,9 +137,9 @@ GNEWS_API_KEY=your_gnews_key
 MARKETAUX_API_TOKEN=your_marketaux_token
 
 # Supabase
-SUPABASE_URL=https://xxxxxxxxxxxxxxxxxxxx.supabase.co
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6Ikp...   # anon/public key
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6Ikp...  # service-role key (backend only)
+SUPABASE_URL=https://xxxx.supabase.co
+SUPABASE_ANON_KEY=eyJhbGci...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGci...   # backend only — never expose to frontend
 
 # Optional
 ENVIRONMENT=development
@@ -127,150 +147,100 @@ CACHE_TTL_SECONDS=300
 FRONTEND_ORIGINS=http://localhost:5500,http://127.0.0.1:5500
 ```
 
-**Where to find Supabase keys:** Supabase dashboard → Settings → API.
+> Supabase keys: Dashboard → Settings → API
 
-> **Security rule:** `SUPABASE_SERVICE_ROLE_KEY` is only used by the backend. It must never appear in `frontend/config.js` or any client-side file.
+### 4. Run SQL migrations
 
----
+In Supabase → **SQL Editor**, run in order:
 
-## 3 — Run SQL migrations
+1. `migrations/001_initial_schema.sql`
+2. `migrations/002_rls_policies.sql`
 
-In the Supabase dashboard open **SQL Editor** and run each file in order:
+### 5. Configure Supabase Auth redirect URLs
 
-1. `migrations/001_initial_schema.sql` — creates tables, indexes, trigger function
-2. `migrations/002_rls_policies.sql` — enables RLS and creates all policies
+Dashboard → **Authentication → URL Configuration**
 
----
-
-## 4 — Configure Supabase Auth redirect URLs
-
-In the Supabase dashboard → **Authentication → URL Configuration**:
-
-| Setting | Value (development) |
+| Setting | Value |
 |---|---|
 | Site URL | `http://localhost:5500` |
 | Redirect URLs | `http://localhost:5500/onboarding.html` |
 | | `http://localhost:5500/reset-password.html` |
 
-For production replace `localhost:5500` with your deployed domain.
+### 6. Configure the frontend
 
-Optionally configure a custom SMTP server under **Authentication → SMTP Settings** so verification and reset emails come from your own domain.
-
----
-
-## 5 — Configure the frontend
-
-Open `frontend/config.js` and fill in your values:
+Open `frontend/config.js`:
 
 ```javascript
 window.NEWS_CONFIG = {
-  API_BASE_URL: "http://127.0.0.1:8000",   // backend URL
+  API_BASE_URL: "http://127.0.0.1:8000",
   SUPABASE_URL: "https://xxxx.supabase.co",
-  SUPABASE_ANON_KEY: "eyJhbGci...",         // anon/public key only
+  SUPABASE_ANON_KEY: "eyJhbGci...",   // anon key only
 };
 ```
 
----
-
-## 6 — Start the backend
+### 7. Start the backend
 
 ```bash
 cd backend
 uvicorn app.main:app --reload
 ```
 
-The API is now at `http://127.0.0.1:8000`. Visit `http://127.0.0.1:8000/docs` for the interactive OpenAPI docs.
+API runs at `http://127.0.0.1:8000` — interactive docs at `/docs`
 
-Health check:
-
-```
-GET http://127.0.0.1:8000/health
-→ {"status":"ok","providers":{"newsapi":true,"gnews":true,"marketaux":true,"rss":true},"supabase":true}
-```
-
----
-
-## 7 — Serve the frontend
-
-Any static file server works. With the VS Code **Live Server** extension open `frontend/index.html` (default port 5500). Alternatively:
+### 8. Serve the frontend
 
 ```bash
 cd frontend
 python -m http.server 5500
 ```
 
-Then open `http://localhost:5500` in your browser.
+Open `http://localhost:5500`
 
 ---
 
-## API reference
+## API Reference
 
-All authenticated routes require `Authorization: Bearer <jwt>` where `<jwt>` is the Supabase session access token.
+All authenticated routes require `Authorization: Bearer <jwt>` (Supabase session token).
 
-| Method | Path | Auth | Description |
+| Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| GET | `/health` | — | Provider and Supabase status |
-| GET | `/api/categories` | — | All categories (`?q=` to search) |
-| GET | `/api/news` | optional | Headlines (`?q=`, `?topics=`, `?page=`, `?page_size=`) |
-| GET | `/api/news/search` | optional | Full-text search (`?q=`) |
-| GET | `/api/topics/{slug}/news` | optional | Articles for one topic |
+| GET | `/health` | — | Provider & Supabase status |
+| GET | `/api/categories` | — | All categories |
+| GET | `/api/news` | optional | Headlines with filters |
+| GET | `/api/news/search` | optional | Full-text search |
 | GET | `/api/feed/for-you` | required | Personalized ranked feed |
 | GET | `/api/feed/latest` | required | Chronological feed |
-| GET | `/api/feed/following` | required | Feed for followed interests only |
 | GET | `/api/bookmarks` | required | Saved articles |
 | POST | `/api/bookmarks` | required | Save an article |
-| DELETE | `/api/bookmarks/{article_id}` | required | Remove bookmark |
-| POST | `/api/interactions` | optional | Record single event |
-| POST | `/api/interactions/batch` | optional | Record up to 50 events |
+| DELETE | `/api/bookmarks/{id}` | required | Remove bookmark |
+| POST | `/api/interactions` | optional | Record a reading event |
 | GET | `/api/preferences` | required | Load user preferences |
 | PUT | `/api/preferences` | required | Update preferences |
-| POST | `/api/preferences/interests` | required | Set followed categories |
-| POST | `/api/preferences/onboarding` | required | Complete onboarding |
 | GET | `/api/insights` | required | Reading stats |
 
 ---
 
-## Running tests
+## Running Tests
 
 ```bash
 cd backend
 pytest -v
 ```
 
-All 33 tests cover article normalization, URL/title deduplication, category taxonomy, recommendation scoring, freshness ranking, diversity capping, and interaction event validation.
-
----
-
-## Troubleshooting
-
-**`supabase: false` in health check**
-Add `SUPABASE_URL` and `SUPABASE_ANON_KEY` to `backend/.env` and restart uvicorn.
-
-**Port 8000 already in use**
-A previous uvicorn process is running. Kill it or use `--port 8001` and update `API_BASE_URL` in `frontend/config.js`.
-
-**CORS errors in browser**
-Add your frontend origin to `FRONTEND_ORIGINS` in `backend/.env`.
-
-**Email verification link not working**
-Confirm the redirect URL in Supabase Auth settings matches the URL you are serving the frontend from (including port).
-
-**Free tier rate limits**
-- GNews: 10 articles per call, 100 requests/day
-- Marketaux: 3 articles per call, 100 requests/day
-- NewsAPI: 100 requests/day (developer plan)
-
-The RSS fallback (Google News) is unlimited and always active.
+33 tests covering article normalization, deduplication, recommendation scoring, freshness ranking, and interaction validation.
 
 ---
 
 ## Deployment
 
-For production:
+1. Deploy `backend/` to any Python host (Render, Railway, Fly.io) — set all env vars in the host's secret manager
+2. Deploy `frontend/` to any static host (Netlify, Vercel, Cloudflare Pages)
+3. Update `frontend/config.js` → `API_BASE_URL` to your backend's public URL
+4. Update Supabase Auth redirect URLs to your production domain
+5. Add your production origin to `FRONTEND_ORIGINS`
 
-1. Deploy the FastAPI backend to any host that runs Python (Fly.io, Railway, Render, etc.). Set all environment variables in the host's secret manager.
-2. Set `ENVIRONMENT=production` in env vars.
-3. Deploy the `frontend/` directory to any static host (Netlify, Vercel, Cloudflare Pages, etc.).
-4. Update `frontend/config.js` → `API_BASE_URL` to your backend's public URL.
-5. Update Supabase Auth redirect URLs to your production domain.
-6. Add your production frontend origin to `FRONTEND_ORIGINS`.
+---
+
+## License
+
+MIT
