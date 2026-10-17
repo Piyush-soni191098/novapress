@@ -99,21 +99,18 @@
 
     <!-- Step 2: Email confirmation waiting -->
     <div class="auth-card" id="otpCard" hidden>
-      <h1 class="auth-title">Verify your email</h1>
-      <p class="auth-subtitle" id="otpMsg">We sent a confirmation link to your email. Click it to activate your account.</p>
+      <h1 class="auth-title">Check your inbox</h1>
+      <p class="auth-subtitle" id="otpMsg">We sent a confirmation link to your email address. Please click it to activate your NovaPress account.</p>
 
       <div id="otpNotice" class="auth-notice" hidden></div>
 
-      <input class="otp-input" id="otpInput" type="text" inputmode="numeric" maxlength="6" placeholder="Or enter 6-digit code" autocomplete="one-time-code">
+      <!-- Hidden — kept so JS doesn't break, not shown to user -->
+      <input id="otpInput" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" style="display:none">
+      <p id="otpTimer" hidden><span id="timerCount"></span></p>
+      <button id="verifyBtn" style="display:none"></button>
 
-      <p class="otp-timer" id="otpTimer">Resend in <span id="timerCount">60</span>s</p>
-
-      <button id="verifyBtn" class="primary-button w-full" style="margin-top:8px">
-        Verify <span>→</span>
-      </button>
-
-      <p class="auth-switch" style="margin-top:16px">
-        Didn't get it?
+      <p class="auth-switch" style="margin-top:32px">
+        Didn't receive it?
         <button class="otp-resend-btn" id="resendBtn">Resend email</button>
       </p>
       <p class="auth-switch"><a href="./login.html" class="auth-link">&#x2190; Back to sign in</a></p>
