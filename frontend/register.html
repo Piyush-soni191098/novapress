@@ -223,32 +223,37 @@
     // Auto-advance OTP inputs
     const digits = Array.from(document.querySelectorAll(".otp-digit"));
     digits.forEach((input, i) => {
+      // keydown: handle backspace + clear box if already filled so new digit triggers input event
       input.addEventListener("keydown", (e) => {
         if (e.key === "Backspace") {
           e.preventDefault();
           if (input.value) {
             input.value = "";
+            checkOtpFilled();
           } else if (i > 0) {
             digits[i - 1].value = "";
             digits[i - 1].focus();
+            checkOtpFilled();
           }
-          checkOtpFilled();
           return;
         }
-        if (e.key >= "0" && e.key <= "9") {
-          e.preventDefault();
-          input.value = e.key;
-          if (i < digits.length - 1) digits[i + 1].focus();
-          checkOtpFilled();
+        // If box is already filled and a digit is typed, clear first so input event fires
+        if (/^\d$/.test(e.key) && input.value) {
+          input.value = "";
         }
       });
-      input.addEventListener("input", (e) => {
-        // Fallback for mobile / virtual keyboards that don't fire keydown
-        const val = e.target.value.replace(/\D/g, "");
-        e.target.value = val.slice(-1);
-        if (val && i < digits.length - 1) digits[i + 1].focus();
+
+      // input: fires after value is set — advance to next box
+      input.addEventListener("input", () => {
+        const val = input.value.replace(/\D/g, "");
+        input.value = val ? val[0] : "";
+        if (input.value && i < digits.length - 1) {
+          digits[i + 1].focus();
+        }
         checkOtpFilled();
       });
+
+      // paste: fill all boxes at once
       input.addEventListener("paste", (e) => {
         e.preventDefault();
         const pasted = (e.clipboardData.getData("text") || "").replace(/\D/g, "").slice(0, 8);
@@ -257,6 +262,7 @@
         digits[last].focus();
         checkOtpFilled();
       });
+
       input.addEventListener("click", () => input.select());
     });
 
