@@ -224,7 +224,7 @@
     // ── Sign out ──────────────────────────────────────────────────────────────
     document.getElementById("signOutBtn").addEventListener("click", async () => {
       await signOut();
-      location.replace("./login.html");
+      location.replace("./login.html?signed_out=1");
     });
 
     // ── Search toggle ─────────────────────────────────────────────────────────

@@ -131,18 +131,25 @@ export function onAuthStateChange(callback) {
 
 // Guard — call at the top of any protected page
 export async function requireAuth(redirectTo = "/login.html") {
-  const session = await getSession();
-  if (!session) {
+  const client = getClient();
+  if (!client) { location.replace(redirectTo); return null; }
+  // getUser() makes a server-side request — catches deleted/expired users
+  const { data: { user }, error } = await client.auth.getUser();
+  if (!user || error) {
+    await client.auth.signOut().catch(() => {});
     location.replace(redirectTo);
     return null;
   }
-  return session;
+  const { data } = await client.auth.getSession();
+  return data.session;
 }
 
 // Guard — redirect authenticated users away from auth pages
 export async function redirectIfAuthenticated(redirectTo = "/dashboard.html") {
-  const session = await getSession();
-  if (session) location.replace(redirectTo);
+  const client = getClient();
+  if (!client) return;
+  const { data: { user } } = await client.auth.getUser();
+  if (user) location.replace(redirectTo);
 }
 
 // Check if onboarding is needed (based on profile)

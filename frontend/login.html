@@ -59,7 +59,10 @@
     import { toast } from "./js/utils.js";
 
     window.lucide?.createIcons();
-    redirectIfAuthenticated("./dashboard.html");
+    // Skip redirect check if the user just signed out (prevents race condition loop)
+    if (!new URLSearchParams(location.search).has("signed_out")) {
+      redirectIfAuthenticated("./dashboard.html");
+    }
 
     const form = document.getElementById("loginForm");
     const submitBtn = document.getElementById("submitBtn");
