@@ -9,6 +9,60 @@
   <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./styles.css">
   <script src="./js/lucide.min.js"></script>
+  <style>
+    /* iPhone-style toggle for onboarding tracking preference */
+    .np-toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 0 4px;
+    }
+    .np-toggle-row .np-toggle-desc {
+      font-size: 13px;
+      color: var(--muted, #666);
+      line-height: 1.5;
+      flex: 1;
+    }
+    .np-toggle {
+      position: relative;
+      width: 51px;
+      height: 31px;
+      flex-shrink: 0;
+    }
+    .np-toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+    .np-toggle-track {
+      position: absolute;
+      inset: 0;
+      background: #ccc;
+      border-radius: 999px;
+      transition: background 0.2s;
+      cursor: pointer;
+    }
+    .np-toggle-track::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 27px;
+      height: 27px;
+      background: #fff;
+      border-radius: 50%;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+      transition: transform 0.2s;
+    }
+    .np-toggle input:checked + .np-toggle-track {
+      background: #D4B779;
+    }
+    .np-toggle input:checked + .np-toggle-track::after {
+      transform: translateX(20px);
+    }
+  </style>
 </head>
 <body class="onboarding-page">
   <div class="onboarding-shell">
@@ -82,16 +136,16 @@
           <input id="prefCountry" type="text" placeholder="e.g. India, US, UK" maxlength="60">
         </div>
 
-        <label class="field toggle-field" for="enableTracking">
-          <div class="toggle-field-text">
-            <span class="toggle-field-title">TRACKING PREFERENCES</span>
-            <span class="toggle-field-desc">Allow NovaPress to learn from my reading to improve recommendations. You can change this anytime in Settings.</span>
+        <div class="field">
+          <label><span>TRACKING PREFERENCES</span></label>
+          <div class="np-toggle-row">
+            <span class="np-toggle-desc">Allow NovaPress to learn from my reading to improve recommendations. You can change this anytime in Settings.</span>
+            <label class="np-toggle" for="enableTracking" aria-label="Enable tracking">
+              <input type="checkbox" id="enableTracking" checked>
+              <span class="np-toggle-track"></span>
+            </label>
           </div>
-          <span class="toggle-switch">
-            <input type="checkbox" id="enableTracking" checked>
-            <span class="toggle-thumb"></span>
-          </span>
-        </label>
+        </div>
       </div>
 
       <div class="step-actions">
