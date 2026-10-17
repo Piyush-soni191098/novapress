@@ -103,13 +103,15 @@
 
     <!-- Step 2: OTP verification -->
     <div class="auth-card" id="otpCard" hidden>
-      <div class="confirm-icon">ðŸ“¬</div>
-      <h1 class="auth-title">Verify your email</h1>
-      <p class="auth-subtitle" id="otpMsg">We sent a 6-digit code to your email. Enter it below.</p>
+      <div class=”confirm-icon”>&#x1F4EC;</div>
+      <h1 class=”auth-title”>Verify your email</h1>
+      <p class=”auth-subtitle” id=”otpMsg”>We sent a verification code to your email. Enter it below.</p>
 
       <div id="otpNotice" class="auth-notice" hidden></div>
 
       <div class="otp-row" id="otpRow">
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
+        <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
         <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
         <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
         <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
@@ -128,7 +130,7 @@
         Didn't get it?
         <button class="otp-resend-btn" id="resendBtn" disabled>Resend code</button>
       </p>
-      <p class="auth-switch"><a href="./login.html" class="auth-link">â† Back to sign in</a></p>
+      <p class="auth-switch"><a href="./login.html" class="auth-link">&#x2190; Back to sign in</a></p>
     </div>
   </div>
 
@@ -207,7 +209,7 @@
       document.getElementById("regCard").hidden = true;
       document.getElementById("otpCard").hidden = false;
       document.getElementById("otpMsg").textContent =
-        `We sent a 6-digit code to ${email}. Enter it below to activate your account.`;
+        `We sent a verification code to ${email}. Enter it below to activate your account.`;
       document.querySelector(".otp-digit").focus();
       if (startCountdown) {
         startTimer();
@@ -231,7 +233,7 @@
       });
       input.addEventListener("paste", (e) => {
         e.preventDefault();
-        const pasted = (e.clipboardData.getData("text") || "").replace(/\D/g, "").slice(0, 6);
+        const pasted = (e.clipboardData.getData("text") || "").replace(/\D/g, "").slice(0, 8);
         pasted.split("").forEach((ch, idx) => { if (digits[idx]) digits[idx].value = ch; });
         const last = Math.min(pasted.length, digits.length - 1);
         digits[last].focus();
@@ -242,13 +244,13 @@
     function getOtpValue() { return digits.map(d => d.value).join(""); }
 
     function checkOtpFilled() {
-      const filled = getOtpValue().length === 6;
+      const filled = getOtpValue().length === 8;
       document.getElementById("verifyBtn").disabled = !filled;
     }
 
     document.getElementById("verifyBtn").addEventListener("click", async () => {
       const token = getOtpValue();
-      if (token.length < 6) return;
+      if (token.length < 8) return;
       const btn = document.getElementById("verifyBtn");
       btn.disabled = true;
       btn.textContent = "Verifying…";
