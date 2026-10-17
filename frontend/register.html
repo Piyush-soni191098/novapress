@@ -117,6 +117,7 @@
         <button class="otp-resend-btn" id="resendBtn">Resend code</button>
       </p>
       <p class="auth-switch"><a href="./login.html" class="auth-link">&#x2190; Back to sign in</a></p>
+      <p class="auth-switch"><button class="otp-resend-btn" id="startOverBtn" style="font-size:.82rem;color:var(--muted,#7b8ab8)">Use different email</button></p>
     </div>
   </div>
 
@@ -278,6 +279,15 @@
         showNotice("otpNotice", err.message || "Could not resend code. Try again shortly.", "error");
         btn.disabled = false;
       }
+    });
+
+    document.getElementById(“startOverBtn”).addEventListener(“click”, () => {
+      sessionStorage.removeItem(“signal_pending_otp”);
+      signedUpEmail = “”;
+      document.getElementById(“otpCard”).hidden = true;
+      document.getElementById(“regCard”).hidden = false;
+      document.getElementById(“email”).value = “”;
+      document.getElementById(“email”).focus();
     });
 
     // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
