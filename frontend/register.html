@@ -114,7 +114,7 @@
 
       <p class="auth-switch" style="margin-top:16px">
         Didn't get it?
-        <button class="otp-resend-btn" id="resendBtn" disabled>Resend code</button>
+        <button class="otp-resend-btn" id="resendBtn">Resend code</button>
       </p>
       <p class="auth-switch"><a href="./login.html" class="auth-link">&#x2190; Back to sign in</a></p>
     </div>
@@ -197,12 +197,9 @@
       document.getElementById("otpMsg").textContent =
         `We sent a verification code to ${email}. Enter it below to activate your account.`;
       document.getElementById("otpInput").focus();
-      if (startCountdown) {
-        startTimer();
-      } else {
-        document.getElementById("otpTimer").hidden = true;
-        document.getElementById("resendBtn").disabled = false;
-      }
+      // Always hide the timer and enable resend immediately
+      document.getElementById("otpTimer").hidden = true;
+      document.getElementById("resendBtn").disabled = false;
     }
 
     const otpInput = document.getElementById("otpInput");
@@ -276,7 +273,7 @@
         otpInput.value = "";
         otpInput.style.borderColor = "";
         otpInput.focus();
-        startTimer(60);
+        btn.disabled = false;
       } catch (err) {
         showNotice("otpNotice", err.message || "Could not resend code. Try again shortly.", "error");
         btn.disabled = false;
