@@ -104,7 +104,7 @@
 
       <div id="otpNotice" class="auth-notice" hidden></div>
 
-      <input class="otp-input" id="otpInput" type="text" inputmode="numeric" maxlength="8" placeholder="Enter code" autocomplete="one-time-code">
+      <input class="otp-input" id="otpInput" type="text" inputmode="numeric" maxlength="6" placeholder="Enter code" autocomplete="one-time-code">
 
       <p class="otp-timer" id="otpTimer">Resend code in <span id="timerCount">60</span>s</p>
 
@@ -207,7 +207,7 @@
 
     const otpInput = document.getElementById("otpInput");
 
-    function getOtpValue() { return otpInput.value.replace(/\D/g, "").slice(0, 8); }
+    function getOtpValue() { return otpInput.value.replace(/\D/g, "").slice(0, 6); }
 
     // Strip non-digits on every event (input, keyup, paste all covered)
     ["input", "keyup", "change"].forEach(evt => {
@@ -219,8 +219,8 @@
 
     document.getElementById("verifyBtn").addEventListener("click", async () => {
       const token = getOtpValue();
-      if (token.length < 8) {
-        showNotice("otpNotice", "Please enter the complete 8-digit verification code.", "error");
+      if (token.length < 6) {
+        showNotice("otpNotice", "Please enter the complete 6-digit verification code.", "error");
         otpInput.focus();
         return;
       }
