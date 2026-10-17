@@ -3,7 +3,7 @@
 // For production, update these values to your deployed backend and Supabase project.
 window.NEWS_CONFIG = {
   // FastAPI backend URL (no trailing slash)
-  API_BASE_URL: "http://127.0.0.1:8000",
+  API_BASE_URL: "https://novapress-zcpg.onrender.com",
 
   // Your Supabase project URL (Settings → API → Project URL)
   SUPABASE_URL: "https://vfslfvlqqjbbfzhdtcgn.supabase.co",
