@@ -223,14 +223,31 @@
     // Auto-advance OTP inputs
     const digits = Array.from(document.querySelectorAll(".otp-digit"));
     digits.forEach((input, i) => {
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Backspace") {
+          e.preventDefault();
+          if (input.value) {
+            input.value = "";
+          } else if (i > 0) {
+            digits[i - 1].value = "";
+            digits[i - 1].focus();
+          }
+          checkOtpFilled();
+          return;
+        }
+        if (e.key >= "0" && e.key <= "9") {
+          e.preventDefault();
+          input.value = e.key;
+          if (i < digits.length - 1) digits[i + 1].focus();
+          checkOtpFilled();
+        }
+      });
       input.addEventListener("input", (e) => {
+        // Fallback for mobile / virtual keyboards that don't fire keydown
         const val = e.target.value.replace(/\D/g, "");
         e.target.value = val.slice(-1);
         if (val && i < digits.length - 1) digits[i + 1].focus();
         checkOtpFilled();
-      });
-      input.addEventListener("keydown", (e) => {
-        if (e.key === "Backspace" && !input.value && i > 0) digits[i - 1].focus();
       });
       input.addEventListener("paste", (e) => {
         e.preventDefault();
@@ -240,6 +257,7 @@
         digits[last].focus();
         checkOtpFilled();
       });
+      input.addEventListener("click", () => input.select());
     });
 
     function getOtpValue() { return digits.map(d => d.value).join(""); }
