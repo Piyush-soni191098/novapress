@@ -133,15 +133,21 @@ export function onAuthStateChange(callback) {
 export async function requireAuth(redirectTo = "/login.html") {
   const client = getClient();
   if (!client) { location.replace(redirectTo); return null; }
-  // getUser() makes a server-side request — catches deleted/expired users
-  const { data: { user }, error } = await client.auth.getUser();
-  if (!user || error) {
+  try {
+    // getUser() makes a server-side request — catches deleted/expired/invalid users
+    const { data, error } = await client.auth.getUser();
+    if (error || !data?.user) {
+      await client.auth.signOut().catch(() => {});
+      location.replace(redirectTo);
+      return null;
+    }
+    const { data: sd } = await client.auth.getSession();
+    return sd?.session || null;
+  } catch {
     await client.auth.signOut().catch(() => {});
     location.replace(redirectTo);
     return null;
   }
-  const { data } = await client.auth.getSession();
-  return data.session;
 }
 
 // Guard — redirect authenticated users away from auth pages
