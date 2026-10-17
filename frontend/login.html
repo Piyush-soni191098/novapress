@@ -98,10 +98,12 @@
         submitBtn.disabled = false;
         submitBtn.innerHTML = 'Sign in <span>→</span>';
         const msg = (err.message || "Sign in failed").toLowerCase();
-        // Unconfirmed email — redirect to OTP verification
+        // Unconfirmed email — show inline message with resend link
         if (msg.includes("not confirmed") || msg.includes("email not confirmed") || msg.includes("confirmation")) {
           sessionStorage.setItem("signal_pending_otp", email);
-          location.replace(`./register.html?pending_otp=${encodeURIComponent(email)}`);
+          notice.innerHTML = `Your email is not verified yet. <a href="./register.html?pending_otp=${encodeURIComponent(email)}" style="color:var(--accent);font-weight:600">Verify now →</a>`;
+          notice.hidden = false;
+          notice.className = "auth-notice auth-notice--error";
           return;
         }
         if (msg.includes("email") || msg.includes("user")) setError("emailError", err.message);
