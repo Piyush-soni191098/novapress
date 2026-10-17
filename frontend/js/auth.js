@@ -86,8 +86,13 @@ export async function signIn(email, password) {
 
 export async function signOut() {
   const client = getClient();
-  if (!client) return;
-  await client.auth.signOut();
+  if (client) {
+    try { await client.auth.signOut(); } catch {}
+  }
+  // Always clear local session data so stale tokens can't persist
+  Object.keys(localStorage)
+    .filter(k => k.startsWith("sb-"))
+    .forEach(k => localStorage.removeItem(k));
   localStorage.removeItem("signal-session-hint");
 }
 

@@ -109,12 +109,16 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
   <script src="./config.js"></script>
   <script type="module">
-    import { requireAuth, signOut, getUser } from "./js/auth.js";
+    import { requireAuth, signOut, getUser, onAuthStateChange } from "./js/auth.js";
     import { fetchPreferences, updatePreferences } from "./js/api.js";
     import { toast } from "./js/utils.js";
 
     window.lucide?.createIcons();
     await requireAuth("./login.html");
+
+    onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") location.replace("./login.html");
+    });
 
     const notice = document.getElementById("settingsNotice");
     function showNotice(msg, type = "success") {

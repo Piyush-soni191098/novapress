@@ -97,7 +97,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
   <script src="./config.js"></script>
   <script type="module">
-    import { requireAuth, signOut, needsOnboarding, getUser } from "./js/auth.js";
+    import { requireAuth, signOut, needsOnboarding, getUser, onAuthStateChange } from "./js/auth.js";
     import { fetchFeedForYou, fetchFeedLatest, fetchFeedFollowing, fetchPreferences, fetchBookmarks, recordInteraction } from "./js/api.js";
     import { renderArticleGrid, renderSkeletons, observeImpressions } from "./js/components.js";
     import { toast } from "./js/utils.js";
@@ -106,6 +106,12 @@
 
     const session = await requireAuth("./login.html");
     if (!session) throw new Error("Not authenticated");
+
+    // Redirect to login whenever the session is invalidated (e.g. user deleted server-side,
+    // background token refresh fails with 403)
+    onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") location.replace("./login.html");
+    });
 
     // Check if onboarding needed
     const shouldOnboard = await needsOnboarding();
