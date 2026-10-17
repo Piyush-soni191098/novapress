@@ -261,16 +261,21 @@
     document.getElementById("resendBtn").addEventListener("click", async () => {
       const btn = document.getElementById("resendBtn");
       btn.disabled = true;
+      if (!signedUpEmail) {
+        showNotice("otpNotice", "Session expired. Please go back and register again.", "error");
+        btn.disabled = false;
+        return;
+      }
       try {
         await resendVerification(signedUpEmail);
-        toast("A new code has been sent to your email", "success");
+        showNotice("otpNotice", "A new code has been sent to " + signedUpEmail, "success");
         otpInput.value = "";
         otpInput.style.borderColor = "";
         otpInput.focus();
         document.getElementById("verifyBtn").disabled = true;
         startTimer(60);
-      } catch {
-        toast("Could not resend code. Try again shortly.", "error");
+      } catch (err) {
+        showNotice("otpNotice", err.message || "Could not resend code. Try again shortly.", "error");
         btn.disabled = false;
       }
     });
