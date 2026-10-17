@@ -106,9 +106,12 @@
           notice.className = "auth-notice auth-notice--error";
           return;
         }
-        if (msg.includes("email") || msg.includes("user")) setError("emailError", err.message);
-        else if (msg.includes("password") || msg.includes("invalid")) setError("passwordError", "Incorrect password");
-        else { notice.textContent = err.message || "Sign in failed"; notice.hidden = false; notice.className = "auth-notice auth-notice--error"; }
+        if (msg.includes("invalid login") || msg.includes("invalid credentials") || msg.includes("invalid") || msg.includes("password")) {
+          // Could be wrong password OR unverified email — show both hints
+          notice.innerHTML = `Incorrect email or password. If you just registered, <a href="./register.html?pending_otp=${encodeURIComponent(email)}" style="color:var(--accent);font-weight:600">verify your email first →</a>`;
+          notice.hidden = false;
+          notice.className = "auth-notice auth-notice--error";
+        } else { notice.textContent = err.message || "Sign in failed"; notice.hidden = false; notice.className = "auth-notice auth-notice--error"; }
       }
     });
 
