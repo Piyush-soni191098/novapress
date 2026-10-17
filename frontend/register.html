@@ -108,7 +108,7 @@
 
       <p class="otp-timer" id="otpTimer">Resend code in <span id="timerCount">60</span>s</p>
 
-      <button id="verifyBtn" class="primary-button w-full" style="margin-top:8px" disabled>
+      <button id="verifyBtn" class="primary-button w-full" style="margin-top:8px">
         Verify <span>→</span>
       </button>
 
@@ -206,20 +206,24 @@
     }
 
     const otpInput = document.getElementById("otpInput");
-    otpInput.addEventListener("input", () => {
-      otpInput.value = otpInput.value.replace(/\D/g, "").slice(0, 8);
-      checkOtpFilled();
+
+    function getOtpValue() { return otpInput.value.replace(/\D/g, "").slice(0, 8); }
+
+    // Strip non-digits on every event (input, keyup, paste all covered)
+    ["input", "keyup", "change"].forEach(evt => {
+      otpInput.addEventListener(evt, () => {
+        const clean = getOtpValue();
+        if (otpInput.value !== clean) otpInput.value = clean;
+      });
     });
-
-    function getOtpValue() { return otpInput.value.trim(); }
-
-    function checkOtpFilled() {
-      document.getElementById("verifyBtn").disabled = getOtpValue().length < 8;
-    }
 
     document.getElementById("verifyBtn").addEventListener("click", async () => {
       const token = getOtpValue();
-      if (token.length < 8) return;
+      if (token.length < 8) {
+        showNotice("otpNotice", "Please enter the complete 8-digit verification code.", "error");
+        otpInput.focus();
+        return;
+      }
       const btn = document.getElementById("verifyBtn");
       btn.disabled = true;
       btn.textContent = "Verifying…";
@@ -272,7 +276,6 @@
         otpInput.value = "";
         otpInput.style.borderColor = "";
         otpInput.focus();
-        document.getElementById("verifyBtn").disabled = true;
         startTimer(60);
       } catch (err) {
         showNotice("otpNotice", err.message || "Could not resend code. Try again shortly.", "error");
